@@ -1,6 +1,6 @@
-resource "harness_platform_workspace" "example" {
-  name                    = "example-workspace"
-  identifier              = "example_workspace"
+resource "harness_platform_workspace" "sk" {
+  name                    = "sk-workspace"
+  identifier              = "sk_workspace"
   org_id                  = var.org_id
   project_id              = var.project_id
   provisioner_type        = "terraform"
@@ -14,7 +14,7 @@ resource "harness_platform_workspace" "example" {
 
   terraform_variable {
     key        = "workspace_name"
-    value      = "example-workspace"
+    value      = "sk-workspace"
     value_type = "string"
   }
 
