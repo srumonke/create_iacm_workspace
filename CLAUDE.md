@@ -8,18 +8,12 @@ This is the **application/definition repository** for Harness IaCM workspaces. D
 
 ## Architecture
 
-```
-[This repo: workspace.yaml] --cloned by pipeline--> [Terraform repo: terraform-complex-structure]
-                                                          |
-                                                    yamldecode + for_each
-                                                          |
-                                                    harness_platform_workspace resources
-```
-
-- **This repo**: Contains only `workspace.yaml` — the single source of truth for workspace definitions
-- **Terraform repo** (`terraform-complex-structure`): Contains all Terraform code (provider config, modules, variables, `for_each` logic)
-- **Harness pipeline**: Clones both repos, runs `terraform init/plan/apply` from the Terraform repo
-- **Trigger**: Webhook fires on pushes to `main` in this repo
+1. Developer pushes changes to `workspace.yaml` on `main`
+2. Webhook trigger fires the `iacm_workspace_provision_iacm` pipeline in Harness (org: `default`, project: `Twilio`)
+3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace2`
+4. `bootstrapworkspace2` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
+5. Terraform fetches `workspace.yaml` via HTTP from `raw.githubusercontent.com` (no repo cloning needed)
+6. `harness_platform_workspace` resources are created/updated via `yamldecode` + `for_each`
 
 ## workspace.yaml Structure
 
@@ -61,10 +55,19 @@ No build or test commands exist in this repo. To validate changes:
 python3 -c "import yaml; yaml.safe_load(open('workspace.yaml'))"
 ```
 
+## Harness Resources
+
+- **Pipeline**: `iacm_workspace_provision_iacm` (org: `default`, project: `Twilio`)
+- **Bootstrap Workspace**: `bootstrapworkspace2` → `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
+- **Webhook Trigger**: `workspace_yaml_push_trigger` — fires on push to `main`
+- **GitHub Connector**: `twilio_connector`
+
 ## Shared Variables
 
 The following values are configured in the Terraform repo (not here):
-- `org_id`: Organization identifier (default: "default")
-- `project_id`: Project identifier (default: "Twilio")
-- `github_connector_id`: GitHub connector for repos (default: "twilio_connector")
-- `harness_account_id`, `harness_api_key`: Set in the IaCM workspace environment
+- `workspace_repo_raw_url`: Raw GitHub URL for this repo (default: `https://raw.githubusercontent.com/srumonke/create_iacm_workspace`)
+- `workspace_repo_branch`: Branch to fetch workspace.yaml from (default: `main`)
+- `org_id`: Organization identifier (default: `default`)
+- `project_id`: Project identifier (default: `Twilio`)
+- `github_connector_id`: GitHub connector for repos (default: `twilio_connector`)
+- Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace2`
