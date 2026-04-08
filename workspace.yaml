@@ -49,3 +49,20 @@ workspaces:
       environment:
         value: dev
         value_type: string
+
+  demo:
+    name: demo-workspace
+    identifier: demo_workspace
+    provisioner_type: terraform
+    provisioner_version: "1.5.7"
+    repository: create_iacm_workspace
+    repository_branch: main
+    repository_path: ""
+    cost_estimation_enabled: false
+    terraform_variables:
+      workspace_name:
+        value: demo-workspace
+        value_type: string
+      environment:
+        value: dev
+        value_type: string
