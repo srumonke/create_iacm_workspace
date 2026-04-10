@@ -9,9 +9,9 @@ This is the **application/definition repository** for Harness IaCM workspaces. D
 ## Architecture
 
 1. Developer pushes changes to `workspace.yaml` on `main`
-2. Webhook trigger fires the `iacm_workspace_provision_iacm` pipeline in Harness (org: `default`, project: `Twilio`)
-3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace2`
-4. `bootstrapworkspace2` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
+2. Webhook trigger fires the `iacm_workspace_provision_iacm` pipeline in Harness (org: `TwilioCentraOrg`, project: `Twilioinfra`)
+3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace3`
+4. `bootstrapworkspace3` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
 5. Terraform fetches `workspace.yaml` via HTTP from `raw.githubusercontent.com` (no repo cloning needed)
 6. `harness_platform_workspace` resources are created/updated via `yamldecode` + `for_each`
 
@@ -57,8 +57,8 @@ python3 -c "import yaml; yaml.safe_load(open('workspace.yaml'))"
 
 ## Harness Resources
 
-- **Pipeline**: `iacm_workspace_provision_iacm` (org: `default`, project: `Twilio`)
-- **Bootstrap Workspace**: `bootstrapworkspace2` → `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
+- **Pipeline**: `iacm_workspace_provision_iacm` (org: `TwilioCentraOrg`, project: `Twilioinfra`)
+- **Bootstrap Workspace**: `bootstrapworkspace3` → `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
 - **Webhook Trigger**: `workspace_yaml_push_trigger` — fires on push to `main`
 - **GitHub Connector**: `twilio_connector`
 
@@ -67,7 +67,7 @@ python3 -c "import yaml; yaml.safe_load(open('workspace.yaml'))"
 The following values are configured in the Terraform repo (not here):
 - `workspace_repo_raw_url`: Raw GitHub URL for this repo (default: `https://raw.githubusercontent.com/srumonke/create_iacm_workspace`)
 - `workspace_repo_branch`: Branch to fetch workspace.yaml from (default: `main`)
-- `org_id`: Organization identifier (default: `default`)
-- `project_id`: Project identifier (default: `Twilio`)
+- `org_id`: Organization identifier (default: `TwilioCentraOrg`)
+- `project_id`: Project identifier (default: `Twilioinfra`)
 - `github_connector_id`: GitHub connector for repos (default: `twilio_connector`)
-- Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace2`
+- Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace3`
