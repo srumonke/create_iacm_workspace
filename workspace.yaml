@@ -50,7 +50,7 @@ workspaces:
         value: dev
         value_type: string
 
-  sruthi2:
+  sruthi3:
     name: sruthi-workspace
     identifier: sruthi_workspace
     provisioner_type: terraform
