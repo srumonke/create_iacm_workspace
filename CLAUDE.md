@@ -67,7 +67,7 @@ python3 -c "import yaml; yaml.safe_load(open('workspace.yaml'))"
 The following values are configured in the Terraform repo (not here):
 - `workspace_repo_raw_url`: Raw GitHub URL for this repo (default: `https://raw.githubusercontent.com/srumonke/create_iacm_workspace`)
 - `workspace_repo_branch`: Branch to fetch workspace.yaml from (default: `main`)
-- `org_id`: Organization identifier (default: `TwilioCentraOrg`)
-- `project_id`: Project identifier (default: `Twilioinfra`)
+- `org_id`: Organization identifier (default: `default`)
+- `project_id`: Project identifier (default: `Twilio`)
 - `github_connector_id`: GitHub connector for repos (default: `twilio_connector`)
 - Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace3`
