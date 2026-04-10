@@ -50,9 +50,9 @@ workspaces:
         value: dev
         value_type: string
 
-  demo:
-    name: demo-workspace
-    identifier: demo_workspace
+  sruthi:
+    name: sruthi-workspace
+    identifier: sruthi_workspace
     provisioner_type: terraform
     provisioner_version: "1.5.7"
     repository: create_iacm_workspace
@@ -61,7 +61,7 @@ workspaces:
     cost_estimation_enabled: false
     terraform_variables:
       workspace_name:
-        value: demo-workspace
+        value: sruthi-workspace
         value_type: string
       environment:
         value: dev
