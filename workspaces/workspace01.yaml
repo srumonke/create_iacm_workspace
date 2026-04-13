@@ -1,0 +1,34 @@
+workspaces:
+  example:
+    name: example-workspace
+    identifier: example_workspace
+    provisioner_type: terraform
+    provisioner_version: "1.5.7"
+    repository: create_iacm_workspace
+    repository_branch: main
+    repository_path: ""
+    cost_estimation_enabled: false
+    terraform_variables:
+      workspace_name:
+        value: example-workspace
+        value_type: string
+      environment:
+        value: dev
+        value_type: string
+
+  dev:
+    name: dev-workspace
+    identifier: dev_workspace
+    provisioner_type: terraform
+    provisioner_version: "1.5.7"
+    repository: create_iacm_workspace
+    repository_branch: main
+    repository_path: ""
+    cost_estimation_enabled: false
+    terraform_variables:
+      workspace_name:
+        value: dev-workspace
+        value_type: string
+      environment:
+        value: dev
+        value_type: string

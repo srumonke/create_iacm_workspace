@@ -1,0 +1,34 @@
+workspaces:
+  sk:
+    name: sk-workspace
+    identifier: sk_workspace
+    provisioner_type: terraform
+    provisioner_version: "1.5.7"
+    repository: create_iacm_workspace
+    repository_branch: main
+    repository_path: ""
+    cost_estimation_enabled: false
+    terraform_variables:
+      workspace_name:
+        value: sk-workspace
+        value_type: string
+      environment:
+        value: dev
+        value_type: string
+
+  sruthi3:
+    name: sruthi-workspace
+    identifier: sruthi_workspace
+    provisioner_type: terraform
+    provisioner_version: "1.5.7"
+    repository: create_iacm_workspace
+    repository_branch: main
+    repository_path: ""
+    cost_estimation_enabled: false
+    terraform_variables:
+      workspace_name:
+        value: sruthi-workspace
+        value_type: string
+      environment:
+        value: dev
+        value_type: string
