@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is the **application/definition repository** for Harness IaCM workspaces. Developers define workspaces in YAML files under the `workspaces/` folder, and Terraform in a separate repository ([terraform-complex-structure](https://github.com/srumonke/terraform-complex-structure)) reads the manifest and workspace files to provision the workspaces.
+This is an **application/definition repository** for Harness IaCM workspaces. Developers define workspaces in YAML files under the `workspaces/` folder, and Terraform in a separate repository ([terraform-complex-structure](https://github.com/srumonke/terraform-complex-structure)) reads the manifest and workspace files to provision the workspaces.
+
+This repo is one of potentially many application repos. The Terraform repo maintains a registry of all application repos in `application_repos.yaml`.
 
 ## Architecture
 
@@ -12,8 +14,9 @@ This is the **application/definition repository** for Harness IaCM workspaces. D
 2. Webhook trigger fires the `iacm_workspace_provision_iacm` pipeline in Harness (org: `TwilioCentraOrg`, project: `Twilioinfra`)
 3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace3`
 4. `bootstrapworkspace3` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
-5. Terraform fetches `workspaces/manifest.yaml` via HTTP, then fetches each workspace file listed in the manifest
-6. All workspace maps are merged and `harness_platform_workspace` resources are created/updated via `yamldecode` + `merge` + `for_each`
+5. Terraform reads `application_repos.yaml` to discover all registered application repos
+6. For each repo, it fetches `workspaces/manifest.yaml` via HTTP, then fetches each workspace file listed in the manifest
+7. All workspace maps are merged (namespaced as `repo_key/workspace_key`) and `harness_platform_workspace` resources are created/updated via `yamldecode` + `merge` + `for_each`
 
 ## Folder Structure
 
@@ -56,7 +59,7 @@ workspaces:
         value_type: string
 ```
 
-Workspace keys must be unique across all files (they are merged into a single map by Terraform).
+Workspace keys must be unique across all files within this repo (they are merged into a single map). In Terraform state, keys are namespaced as `repo_key/workspace_key` to avoid collisions across repos.
 
 ## Naming Conventions
 
@@ -71,6 +74,28 @@ Workspace keys must be unique across all files (they are merged into a single ma
 3. Validate YAML syntax before committing
 4. Commit and push to `main`
 5. The Harness pipeline automatically provisions changes
+
+## Registering a New Application Repo
+
+To register a new application repo (like this one), add an entry to `application_repos.yaml` in the Terraform repo (`terraform-complex-structure/modules/common/application_workspace_create/application_repos.yaml`):
+
+```yaml
+repos:
+  create_iacm_workspace:
+    raw_url: https://raw.githubusercontent.com/srumonke/create_iacm_workspace
+    branch: main
+    org_id: default
+    project_id: Twilio
+    github_connector_id: twilio_connector
+  new_repo:
+    raw_url: https://raw.githubusercontent.com/srumonke/new-repo
+    branch: main
+    org_id: default
+    project_id: AnotherProject
+    github_connector_id: twilio_connector
+```
+
+The new repo must follow the same `workspaces/manifest.yaml` + workspace files structure.
 
 ## Validation
 
@@ -87,12 +112,9 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('work
 - **Webhook Trigger**: `workspace_yaml_push_trigger` — fires on push to `main`
 - **GitHub Connector**: `twilio_connector`
 
-## Shared Variables
+## Terraform Repo Configuration
 
-The following values are configured in the Terraform repo (not here):
-- `workspace_repo_raw_url`: Raw GitHub URL for this repo (default: `https://raw.githubusercontent.com/srumonke/create_iacm_workspace`)
-- `workspace_repo_branch`: Branch to fetch workspace files from (default: `main`)
-- `org_id`: Organization identifier (default: `default`)
-- `project_id`: Project identifier (default: `Twilio`)
-- `github_connector_id`: GitHub connector for repos (default: `twilio_connector`)
+The Terraform repo (`terraform-complex-structure`) manages all configuration:
+- **`application_repos.yaml`**: Registry of all application repos with their `raw_url`, `branch`, `org_id`, `project_id`, and `github_connector_id`
+- No Terraform variables are needed — everything is driven by `application_repos.yaml`
 - Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace3`
