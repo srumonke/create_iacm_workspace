@@ -10,14 +10,28 @@ This repo is one of potentially many application repos. The Terraform repo maint
 
 ## Architecture
 
+### Adding/editing workspaces in an existing app repo
+
 1. Developer pushes changes to files in `workspaces/` on `main`
-2. Webhook trigger fires the `iacm_workspace_provision_iacm` pipeline in Harness (org: `TwilioCentraOrg`, project: `Twilioinfra`)
+2. The repo's auto-created webhook trigger (`<repo_key>_push_trigger`) fires the `iacm_workspace_provision_iacm` pipeline
 3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace3`
-4. `bootstrapworkspace3` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
-5. Terraform reads `application_repos.yaml` to discover all registered application repos
-6. For each repo, it calls the GitHub API to list all `.yaml`/`.yml` files in the `workspaces/` folder
-7. Each discovered file is fetched via its download URL
-8. All workspace maps are merged (namespaced as `repo_key/workspace_key`) and `harness_platform_workspace` resources are created/updated via `yamldecode` + `merge` + `for_each`
+4. Terraform reads `application_repos.yaml` to discover all registered application repos
+5. For each repo, it calls the GitHub API to list all `.yaml`/`.yml` files in the `workspaces/` folder
+6. Each discovered file is fetched via its download URL
+7. All workspace maps are merged (namespaced as `repo_key/workspace_key`) and `harness_platform_workspace` resources are created/updated
+
+### Registering a new application repo
+
+1. Add an entry to `application_repos.yaml` in the Terraform repo and push to `main`
+2. The `terraform_repo_push_trigger` fires the same pipeline automatically
+3. Terraform creates:
+   - A webhook trigger (`<repo_key>_push_trigger`) for the new repo on the pipeline
+   - All workspaces defined in the new repo's `workspaces/` folder
+4. Future pushes to the new repo will auto-trigger the pipeline via its new trigger
+
+### Idempotency across repos
+
+Every pipeline run reconciles **all** registered repos, not just the one that triggered it. This is safe because Terraform is idempotent — unchanged repos produce no diff and are skipped. For example, if team1 pushes a workspace change, team2 and team3's workspaces are evaluated but nothing changes for them. The only cost is slightly longer plan times as more repos are added (more GitHub API calls).
 
 ## Folder Structure
 
@@ -86,6 +100,10 @@ repos:
     github_connector_id: twilio_connector
 ```
 
+Push to `main` and the pipeline runs automatically (via `terraform_repo_push_trigger`), creating:
+- A webhook trigger `new_repo_push_trigger` on the pipeline for the new repo
+- All workspaces defined in the new repo's `workspaces/` folder
+
 The new repo must have a `workspaces/` folder with `.yaml` files following the workspace file structure above.
 
 ## Validation
@@ -100,12 +118,19 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('work
 
 - **Pipeline**: `iacm_workspace_provision_iacm` (org: `TwilioCentraOrg`, project: `Twilioinfra`)
 - **Bootstrap Workspace**: `bootstrapworkspace3` → `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
-- **Webhook Trigger**: `workspace_yaml_push_trigger` — fires on push to `main`
 - **GitHub Connector**: `twilio_connector`
+
+### Terraform-managed triggers
+
+- **`terraform_repo_push_trigger`**: Fires on push to `terraform-complex-structure` `main` — bootstraps triggers and workspaces for newly registered repos
+- **`<repo_key>_push_trigger`**: One per registered app repo — fires on push to that repo's `main` branch
+
+These triggers are managed by Terraform and should not be deleted manually from the Harness UI (Terraform will recreate them on next apply).
 
 ## Terraform Repo Configuration
 
 The Terraform repo (`terraform-complex-structure`) manages all configuration:
 - **`application_repos.yaml`**: Registry of all application repos with their `repo` (owner/name), `branch`, `org_id`, `project_id`, and `github_connector_id`
+- **`main.tf`**: Auto-discovers workspace files via GitHub API, creates workspaces and webhook triggers
 - No Terraform variables are needed — everything is driven by `application_repos.yaml`
 - Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace3`
