@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Purpose
 
-This is an **application/definition repository** for Harness IaCM workspaces. Developers define workspaces in YAML files under the `workspaces/` folder, and Terraform in a separate repository ([terraform-complex-structure](https://github.com/srumonke/terraform-complex-structure)) reads the manifest and workspace files to provision the workspaces.
+This is an **application/definition repository** for Harness IaCM workspaces. Developers define workspaces in YAML files under the `workspaces/` folder, and Terraform in a separate repository ([terraform-complex-structure](https://github.com/srumonke/terraform-complex-structure)) auto-discovers and reads all workspace files to provision the workspaces.
 
 This repo is one of potentially many application repos. The Terraform repo maintains a registry of all application repos in `application_repos.yaml`.
 
@@ -15,28 +15,20 @@ This repo is one of potentially many application repos. The Terraform repo maint
 3. The pipeline runs an IACM stage (`init` → `plan` → `apply`) against `bootstrapworkspace3`
 4. `bootstrapworkspace3` points to `terraform-complex-structure` repo, path `modules/common/application_workspace_create`
 5. Terraform reads `application_repos.yaml` to discover all registered application repos
-6. For each repo, it fetches `workspaces/manifest.yaml` via HTTP, then fetches each workspace file listed in the manifest
-7. All workspace maps are merged (namespaced as `repo_key/workspace_key`) and `harness_platform_workspace` resources are created/updated via `yamldecode` + `merge` + `for_each`
+6. For each repo, it calls the GitHub API to list all `.yaml`/`.yml` files in the `workspaces/` folder
+7. Each discovered file is fetched via its download URL
+8. All workspace maps are merged (namespaced as `repo_key/workspace_key`) and `harness_platform_workspace` resources are created/updated via `yamldecode` + `merge` + `for_each`
 
 ## Folder Structure
 
 ```
 workspaces/
-  manifest.yaml       # Lists all workspace files to load
   workspace01.yaml    # One or more workspace definitions
   workspace02.yaml
   ...
 ```
 
-### manifest.yaml
-
-```yaml
-files:
-  - workspace01.yaml
-  - workspace02.yaml
-```
-
-When adding a new workspace file, you must also add it to `manifest.yaml`.
+All `.yaml`/`.yml` files in `workspaces/` are auto-discovered by Terraform via the GitHub API. No manifest needed — just add a file and push.
 
 ### Workspace File Structure
 
@@ -70,10 +62,9 @@ Workspace keys must be unique across all files within this repo (they are merged
 ## Workflow
 
 1. Edit or create a workspace file in `workspaces/` (e.g., `workspace03.yaml`)
-2. If adding a new file, add it to `workspaces/manifest.yaml`
-3. Validate YAML syntax before committing
-4. Commit and push to `main`
-5. The Harness pipeline automatically provisions changes
+2. Validate YAML syntax before committing
+3. Commit and push to `main`
+4. The Harness pipeline automatically provisions changes
 
 ## Registering a New Application Repo
 
@@ -82,20 +73,20 @@ To register a new application repo (like this one), add an entry to `application
 ```yaml
 repos:
   create_iacm_workspace:
-    raw_url: https://raw.githubusercontent.com/srumonke/create_iacm_workspace
+    repo: srumonke/create_iacm_workspace
     branch: main
     org_id: default
     project_id: Twilio
     github_connector_id: twilio_connector
   new_repo:
-    raw_url: https://raw.githubusercontent.com/srumonke/new-repo
+    repo: srumonke/new-repo
     branch: main
     org_id: default
     project_id: AnotherProject
     github_connector_id: twilio_connector
 ```
 
-The new repo must follow the same `workspaces/manifest.yaml` + workspace files structure.
+The new repo must have a `workspaces/` folder with `.yaml` files following the workspace file structure above.
 
 ## Validation
 
@@ -115,6 +106,6 @@ python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('work
 ## Terraform Repo Configuration
 
 The Terraform repo (`terraform-complex-structure`) manages all configuration:
-- **`application_repos.yaml`**: Registry of all application repos with their `raw_url`, `branch`, `org_id`, `project_id`, and `github_connector_id`
+- **`application_repos.yaml`**: Registry of all application repos with their `repo` (owner/name), `branch`, `org_id`, `project_id`, and `github_connector_id`
 - No Terraform variables are needed — everything is driven by `application_repos.yaml`
 - Harness provider credentials (`HARNESS_ENDPOINT`, `HARNESS_ACCOUNT_ID`, `HARNESS_PLATFORM_API_KEY`): Set as environment variables on `bootstrapworkspace3`
