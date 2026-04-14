@@ -7,6 +7,7 @@ workspaces:
     repository: create_iacm_workspace
     repository_branch: main
     repository_path: ""
+    repository_connector: twilio_connector
     cost_estimation_enabled: false
     terraform_variables:
       workspace_name:
@@ -24,6 +25,7 @@ workspaces:
     repository: create_iacm_workspace
     repository_branch: main
     repository_path: ""
+    repository_connector: twilio_connector
     cost_estimation_enabled: false
     terraform_variables:
       workspace_name:
